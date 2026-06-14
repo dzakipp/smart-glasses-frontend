@@ -108,7 +108,7 @@ function App() {
         setTimeout(resolve, 2000)
       );
 
-      await axios.get(
+      await axios.post(
         `${API_URL}/capture`
       );
 
