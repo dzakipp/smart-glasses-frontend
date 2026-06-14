@@ -3,52 +3,26 @@ import axios from "axios";
 import { io } from "socket.io-client";
 
 const API_URL = "https://smart-glasses-production-289e.up.railway.app";
-const ESP32_STREAM = ["http://192.168.100.193/stream"]
-;
-const testStream = async (url) => {
-  return new Promise((resolve) => {
-    const img = new Image();
 
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-
-    img.src = `${url}?t=${Date.now()}`;
-  });
-};
-const findWorkingStream = async () => {
-  for (const url of ESP32_STREAMS) {
-    const ok = await testStream(url);
-    if (ok) return url;
-  }
-  return null;
-};
-
+// Ganti IP ini sesuai IP ESP32 kamu (cek Serial Monitor)
+const ESP32_IP = "192.168.100.193";
+const ESP32_STREAM_URL = `http://${ESP32_IP}/stream`;
+const ESP32_CAPTURE_URL = `http://${ESP32_IP}/capture`;
 
 function App() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState("");
+  const [streaming, setStreaming] = useState(false);
   const [streamUrl, setStreamUrl] = useState(null);
-
-  const startStream = async () => {
-  const activeStream = await findWorkingStream();
-
-  if (!activeStream) {
-    console.log("No ESP32 stream found");
-    return;
-  }
-
-  setStreamUrl(`${activeStream}?t=${Date.now()}`);
-};
-  const [streaming, setStreaming] = useState(true);
   const [page, setPage] = useState("home");
 
   useEffect(() => {
     const socket = io(API_URL, {
-  transports: ["websocket"],
-  reconnection: true,
-  timeout: 10000
-});
+      transports: ["websocket"],
+      reconnection: true,
+      timeout: 10000,
+    });
 
     getPhotos();
 
@@ -57,83 +31,61 @@ function App() {
     });
 
     return () => {
-      socket.off("new-photo");
+      socket.disconnect();
     };
   }, []);
 
   const getPhotos = async () => {
     try {
       const res = await axios.get(`${API_URL}/photos`);
-
       setPhotos(res.data);
     } catch (error) {
-      console.log(error);
+      console.log("Get photos error:", error);
     }
   };
 
   const deletePhoto = async (id) => {
+    const ok = window.confirm("Yakin ingin menghapus foto ini?");
+    if (!ok) return;
     try {
-      await axios.delete(
-  `${API_URL}/photos/${id}`
-);
-
-      setPhotos((prev) =>
-        prev.filter((photo) => photo._id !== id)
-      );
+      await axios.delete(`${API_URL}/photos/${id}`);
+      setPhotos((prev) => prev.filter((p) => p._id !== id));
     } catch (error) {
-      console.log(error);
+      console.log("Delete error:", error);
     }
   };
 
   const startStream = () => {
-  setStreaming(true);
-  setStreamUrl(`${ESP32_STREAM}?t=${Date.now()}`);
-};
+    setStreaming(true);
+    // tambah timestamp supaya browser tidak cache
+    setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
+  };
 
   const stopStream = () => {
-  setStreamUrl(null);
-  setStreaming(false);
-};
+    setStreaming(false);
+    setStreamUrl(null);
+  };
 
   const capturePhoto = async () => {
     if (loading) return;
-
     try {
       setLoading(true);
-      setMessage("Taking photo...");
+      setMessage("Mengambil foto...");
 
-      setStreamUrl("");
+      // Panggil langsung ke ESP32 supaya dia upload ke server
+      await axios.get(ESP32_CAPTURE_URL);
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, 2000)
-      );
-
-      await axios.post(
-        `${API_URL}/capture`
-      );
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 4000)
-      );
+      // Tunggu ESP32 upload ke Cloudinary
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
       await getPhotos();
-
-      setMessage("Photo captured!");
+      setMessage("Foto berhasil diambil!");
     } catch (error) {
-      console.log(error);
-      setMessage("Capture done");
+      console.log("Capture error:", error);
+      setMessage("Gagal capture, cek koneksi ESP32.");
     } finally {
-      setTimeout(() => {
-        setStreamUrl(
-          `${API_URL}/stream?t=${Date.now()}`
-        );
-      }, 1000);
-
-      setTimeout(() => {
-        setMessage("");
-      }, 2500);
-
       setLoading(false);
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
@@ -143,52 +95,22 @@ function App() {
         minHeight: "100vh",
         background: "#111",
         color: "white",
-        fontFamily: "Arial, sans-serif"
+        fontFamily: "Arial, sans-serif",
       }}
     >
       {/* NAVBAR */}
       <div className="navbar">
-
-  <h2 className="logo">
-    Smart ESP32 Glasses
-  </h2>
-
-  <div className="nav-links">
-          <button
-  className={`nav-btn ${
-    page === "home" ? "active" : ""
-  }`}
-  onClick={() => setPage("home")}
->
-  Home
-</button>
-
-          <button
-  className={`nav-btn ${
-    page === "review" ? "active" : ""
-  }`}
-  onClick={() => setPage("review")}
->
-  Review
-</button>
-
-          <button
-  className={`nav-btn ${
-    page === "gallery" ? "active" : ""
-  }`}
-  onClick={() => setPage("gallery")}
->
-  Gallery
-</button>
-
-          <button
-  className={`nav-btn ${
-    page === "storage" ? "active" : ""
-  }`}
-  onClick={() => setPage("storage")}
->
-  Storage
-</button>
+        <h2 className="logo">Smart ESP32 Glasses</h2>
+        <div className="nav-links">
+          {["home", "review", "gallery", "storage"].map((p) => (
+            <button
+              key={p}
+              className={`nav-btn ${page === p ? "active" : ""}`}
+              onClick={() => setPage(p)}
+            >
+              {p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -197,90 +119,54 @@ function App() {
 
         {/* HOME */}
         {page === "home" && (
-  <div className="home-card">
-
-    <div className="home-left">
-
-      <h1>Smart ESP32 Glasses</h1>
-
-      <h2>
-        Smart Glasses Monitoring System
-      </h2>
-
-      <p>
-        Monitor camera stream and manage
-        captured images from ESP32-CAM.
-      </p>
-
-      <button
-        className="start-btn"
-        onClick={() => setPage("review")}
-      >
-        Get Started
-      </button>
-
-    </div>
-
-    <div className="home-right">
-
-      <img
-        src="/glasses.png"
-        alt="Smart Glasses"
-      />
-
-    </div>
-
-  </div>
-)}
+          <div className="home-card">
+            <div className="home-left">
+              <h1>Smart ESP32 Glasses</h1>
+              <h2>Smart Glasses Monitoring System</h2>
+              <p>Monitor camera stream dan kelola foto dari ESP32-CAM.</p>
+              <button className="start-btn" onClick={() => setPage("review")}>
+                Get Started
+              </button>
+            </div>
+            <div className="home-right">
+              <img src="/glasses.png" alt="Smart Glasses" />
+            </div>
+          </div>
+        )}
 
         {/* REVIEW */}
         {page === "review" && (
           <div>
             <h1>Live Camera</h1>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginBottom: "20px"
-              }}
-            >
-              <button
-                onClick={
-                  streaming
-                    ? stopStream
-                    : startStream
-                }
-              >
-                {streaming
-                  ? "Stop Stream"
-                  : "Start Stream"}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+              <button onClick={streaming ? stopStream : startStream}>
+                {streaming ? "Stop Stream" : "Start Stream"}
               </button>
 
               {streaming && (
-                <button
-                  onClick={capturePhoto}
-                  disabled={loading}
-                >
-                  {loading
-                    ? "Please Wait..."
-                    : "Capture Photo"}
+                <button onClick={capturePhoto} disabled={loading}>
+                  {loading ? "Mohon Tunggu..." : "Capture Photo"}
                 </button>
               )}
             </div>
 
-            <p>{message}</p>
+            {message && <p style={{ color: "#aaa" }}>{message}</p>}
 
             {streaming && streamUrl && (
-  <img
-    src={streamUrl}
-    alt="stream"
-    style={{
-      width: "100%",
-      borderRadius: "20px"
-    }}
-  />  
-)}
+              <img
+                src={streamUrl}
+                alt="ESP32 stream"
+                style={{ width: "100%", borderRadius: "20px" }}
+                onError={() => {
+                  setMessage("Stream tidak tersambung. Cek IP ESP32.");
+                }}
+              />
+            )}
+
+            {streaming && !streamUrl && (
+              <p style={{ color: "#aaa" }}>Memuat stream...</p>
+            )}
           </div>
         )}
 
@@ -288,13 +174,14 @@ function App() {
         {page === "gallery" && (
           <div>
             <h1>Gallery</h1>
-
+            {photos.length === 0 && (
+              <p style={{ color: "#aaa" }}>Belum ada foto.</p>
+            )}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fill,minmax(250px,1fr))",
-                gap: "20px"
+                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "20px",
               }}
             >
               {photos.map((photo) => (
@@ -304,33 +191,20 @@ function App() {
                     position: "relative",
                     background: "#1f1f1f",
                     borderRadius: "15px",
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   <img
                     src={photo.imageUrl}
-                    alt="photo"
-                    style={{
-                      width: "100%",
-                      display: "block"
-                    }}
+                    alt="captured"
+                    style={{ width: "100%", display: "block" }}
                   />
-
                   <button
-  className="delete-btn"
-  onClick={() => {
-    const confirmDelete =
-      window.confirm(
-        "Yakin ingin menghapus foto ini?"
-      );
-
-    if (confirmDelete) {
-      deletePhoto(photo._id);
-    }
-  }}
->
-  Delete
-</button>
+                    className="delete-btn"
+                    onClick={() => deletePhoto(photo._id)}
+                  >
+                    Delete
+                  </button>
                 </div>
               ))}
             </div>
@@ -341,20 +215,15 @@ function App() {
         {page === "storage" && (
           <div>
             <h1>Storage</h1>
-
             <div
               style={{
                 background: "#1f1f1f",
                 padding: "30px",
-                borderRadius: "20px"
+                borderRadius: "20px",
               }}
             >
               <h2>Cloudinary Storage</h2>
-
-              <p>
-                Storage information will be
-                added later.
-              </p>
+              <p>Total foto tersimpan: <strong>{photos.length}</strong></p>
             </div>
           </div>
         )}
