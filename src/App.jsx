@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
+const API_URL = "https://smart-glasses-production-289e.up.railway.app";
 const ESP32_STREAM = "http://192.168.100.193/stream";
 
 
