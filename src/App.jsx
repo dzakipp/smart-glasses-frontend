@@ -4,11 +4,6 @@ import { io } from "socket.io-client";
 
 const ESP32_STREAM = "http://192.168.100.193/stream";
 
-const socket = io(API_URL, {
-  transports: ["websocket"],
-  reconnection: true,
-  timeout: 10000
-});
 
 function App() {
   const [photos, setPhotos] = useState([]);
@@ -19,6 +14,12 @@ function App() {
   const [page, setPage] = useState("home");
 
   useEffect(() => {
+    const socket = io(API_URL, {
+  transports: ["websocket"],
+  reconnection: true,
+  timeout: 10000
+});
+
     getPhotos();
 
     socket.on("new-photo", (photo) => {
@@ -248,7 +249,7 @@ function App() {
       width: "100%",
       borderRadius: "20px"
     }}
-  />
+  />  
 )}
           </div>
         )}
