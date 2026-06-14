@@ -4,7 +4,11 @@ import { io } from "socket.io-client";
 
 const API_URL = "https://smart-glasses-production-289e.up.railway.app";
 
-const socket = io(API_URL);
+const socket = io(API_URL, {
+  transports: ["websocket"],
+  reconnection: true,
+  timeout: 10000
+});
 
 function App() {
   const [photos, setPhotos] = useState([]);
