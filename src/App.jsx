@@ -288,24 +288,20 @@ function App() {
                   />
 
                   <button
-                    onClick={() => {
-                      const confirmDelete =
-                        window.confirm(
-                          "Yakin ingin menghapus foto ini?"
-                        );
+  className="delete-btn"
+  onClick={() => {
+    const confirmDelete =
+      window.confirm(
+        "Yakin ingin menghapus foto ini?"
+      );
 
-                      if (confirmDelete) {
-                        deletePhoto(photo._id);
-                      }
-                    }}
-                    style={{
-                      position: "absolute",
-                      top: "10px",
-                      right: "10px"
-                    }}
-                  >
-                    Delete
-                  </button>
+    if (confirmDelete) {
+      deletePhoto(photo._id);
+    }
+  }}
+>
+  Delete
+</button>
                 </div>
               ))}
             </div>

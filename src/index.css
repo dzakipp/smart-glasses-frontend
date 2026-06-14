@@ -15,7 +15,23 @@ body{
   min-height:100vh;
   background:#000;
 }
+.delete-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
 
+  background:rgba(70,70,70,0.9);
+  color:#ddd;
+
+  border:none;
+  border-radius:6px;
+
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:500;
+
+  cursor:pointer;
+}
 /* NAVBAR */
 .navbar{
   display:flex;
@@ -28,7 +44,7 @@ body{
 }
 
 .logo{
-  font-size:24px;
+  font-size:38px;
   font-weight:700;
   color:white;
 }
@@ -51,6 +67,7 @@ body{
 .nav-btn.active{
   background:#ff9800;
   color:black;
+  border-radius:4px;
 }
 
 /* HOME CARD */
