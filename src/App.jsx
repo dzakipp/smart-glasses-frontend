@@ -14,9 +14,7 @@ function App() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [streamUrl, setStreamUrl] = useState(
-    "http://192.168.100.193/stream"
-  );
+  const [streamUrl, setStreamUrl] = useState(null);
   const [streaming, setStreaming] = useState(true);
   const [page, setPage] = useState("home");
 
@@ -58,14 +56,14 @@ function App() {
 
   const startStream = () => {
     setStreamUrl(
-      `http://192.168.100.193/stream?t=${Date.now()}`
+      `${API_URL}/stream?t=${Date.now()}`
     );
 
     setStreaming(true);
   };
 
   const stopStream = () => {
-    setStreamUrl("");
+    setStreamUrl(null);
     setStreaming(false);
   };
 
@@ -83,7 +81,7 @@ function App() {
       );
 
       await axios.get(
-        "http://192.168.100.193/capture"
+        `${API_URL}/esp/capture`
       );
 
       await new Promise((resolve) =>
@@ -99,7 +97,7 @@ function App() {
     } finally {
       setTimeout(() => {
         setStreamUrl(
-          `http://192.168.100.193/stream?t=${Date.now()}`
+          `${API_URL}/stream?t=${Date.now()}`
         );
       }, 1000);
 
@@ -245,16 +243,16 @@ function App() {
 
             <p>{message}</p>
 
-            {streaming && (
-              <img
-                src={streamUrl}
-                alt="stream"
-                style={{
-                  width: "100%",
-                  borderRadius: "20px"
-                }}
-              />
-            )}
+            {streaming && streamUrl && (
+  <img
+    src={streamUrl}
+    alt="stream"
+    style={{
+      width: "100%",
+      borderRadius: "20px"
+    }}
+  />
+)}
           </div>
         )}
 
