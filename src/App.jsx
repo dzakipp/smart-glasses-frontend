@@ -55,6 +55,7 @@ function App() {
   };
 
   const startStream = () => {
+    setStreaming(true);
     setStreamUrl(
       `${API_URL}/stream?t=${Date.now()}`
     );
@@ -81,7 +82,7 @@ function App() {
       );
 
       await axios.get(
-        `${API_URL}/esp/capture`
+        `${API_URL}/capture`
       );
 
       await new Promise((resolve) =>
