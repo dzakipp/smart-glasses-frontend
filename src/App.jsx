@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const API_URL = "https://smart-glasses-production-289e.up.railway.app";
+const ESP32_STREAM = "http://192.168.100.193/stream";
 
 const socket = io(API_URL, {
   transports: ["websocket"],
@@ -13,8 +13,8 @@ const socket = io(API_URL, {
 function App() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [streamUrl, setStreamUrl] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [streamUrl, setStreamUrl] = useState(ESP32_STREAM);
   const [streaming, setStreaming] = useState(true);
   const [page, setPage] = useState("home");
 
@@ -55,18 +55,14 @@ function App() {
   };
 
   const startStream = () => {
-    setStreaming(true);
-    setStreamUrl(
-      `${API_URL}/stream?t=${Date.now()}`
-    );
-
-    setStreaming(true);
-  };
+  setStreaming(true);
+  setStreamUrl(`${ESP32_STREAM}?t=${Date.now()}`);
+};
 
   const stopStream = () => {
-    setStreamUrl(null);
-    setStreaming(false);
-  };
+  setStreamUrl(null);
+  setStreaming(false);
+};
 
   const capturePhoto = async () => {
     if (loading) return;
