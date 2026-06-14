@@ -3,14 +3,43 @@ import axios from "axios";
 import { io } from "socket.io-client";
 
 const API_URL = "https://smart-glasses-production-289e.up.railway.app";
-const ESP32_STREAM = "http://192.168.100.193/stream";
+const ESP32_STREAM = ["http://192.168.100.193/stream"]
+;
+const testStream = async (url) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+
+    img.src = `${url}?t=${Date.now()}`;
+  });
+};
+const findWorkingStream = async () => {
+  for (const url of ESP32_STREAMS) {
+    const ok = await testStream(url);
+    if (ok) return url;
+  }
+  return null;
+};
 
 
 function App() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const [streamUrl, setStreamUrl] = useState(ESP32_STREAM);
+  const [streamUrl, setStreamUrl] = useState(null);
+
+  const startStream = async () => {
+  const activeStream = await findWorkingStream();
+
+  if (!activeStream) {
+    console.log("No ESP32 stream found");
+    return;
+  }
+
+  setStreamUrl(`${activeStream}?t=${Date.now()}`);
+};
   const [streaming, setStreaming] = useState(true);
   const [page, setPage] = useState("home");
 
