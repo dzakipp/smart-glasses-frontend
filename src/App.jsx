@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
@@ -10,15 +10,19 @@ const ESP32_STREAM_URL = `http://${ESP32_IP}/stream`;
 const ESP32_CAPTURE_URL = `http://${ESP32_IP}/capture`;
 
 function App() {
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [photos, setPhotos]     = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [message, setMessage]   = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamUrl, setStreamUrl] = useState(null);
-  const [page, setPage] = useState("home");
+  const [page, setPage]         = useState("home");
+
+  // Simpan socket di ref supaya tidak disconnect waktu re-render
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    const socket = io(API_URL, {
+    // Buat socket sekali saja, jangan di-disconnect saat komponen re-render
+    socketRef.current = io(API_URL, {
       transports: ["websocket"],
       reconnection: true,
       timeout: 10000,
@@ -26,12 +30,14 @@ function App() {
 
     getPhotos();
 
-    socket.on("new-photo", (photo) => {
+    socketRef.current.on("new-photo", (photo) => {
+      // Foto baru langsung muncul tanpa refresh
       setPhotos((prev) => [photo, ...prev]);
     });
 
+    // Cleanup hanya saat komponen benar-benar unmount (tutup tab)
     return () => {
-      socket.disconnect();
+      socketRef.current.disconnect();
     };
   }, []);
 
@@ -39,8 +45,8 @@ function App() {
     try {
       const res = await axios.get(`${API_URL}/photos`);
       setPhotos(res.data);
-    } catch (error) {
-      console.log("Get photos error:", error);
+    } catch (err) {
+      console.log("Get photos error:", err);
     }
   };
 
@@ -50,14 +56,13 @@ function App() {
     try {
       await axios.delete(`${API_URL}/photos/${id}`);
       setPhotos((prev) => prev.filter((p) => p._id !== id));
-    } catch (error) {
-      console.log("Delete error:", error);
+    } catch (err) {
+      console.log("Delete error:", err);
     }
   };
 
   const startStream = () => {
     setStreaming(true);
-    // tambah timestamp supaya browser tidak cache
     setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
   };
 
@@ -68,24 +73,44 @@ function App() {
 
   const capturePhoto = async () => {
     if (loading) return;
+
     try {
       setLoading(true);
-      setMessage("Mengambil foto...");
 
-      // Panggil langsung ke ESP32 supaya dia upload ke server
+      // 1. Stop stream dulu supaya ESP32 bebas capture
+      setStreaming(false);
+      setStreamUrl(null);
+      setMessage("Menghentikan stream...");
+
+      // Beri waktu ESP32 menutup koneksi stream (500ms cukup)
+      await new Promise((r) => setTimeout(r, 500));
+
+      // 2. Perintah capture ke ESP32
+      setMessage("Mengambil foto...");
       await axios.get(ESP32_CAPTURE_URL);
 
-      // Tunggu ESP32 upload ke Cloudinary
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      // 3. Tunggu ESP32 upload ke Cloudinary (biasanya 2–4 detik)
+      setMessage("Mengupload foto...");
+      await new Promise((r) => setTimeout(r, 4000));
 
+      setMessage("Foto berhasil diambil! ✓");
+
+      // 4. Foto baru sudah masuk via socket.on("new-photo"),
+      //    tapi fallback getPhotos() kalau socket lambat
       await getPhotos();
-      setMessage("Foto berhasil diambil!");
-    } catch (error) {
-      console.log("Capture error:", error);
-      setMessage("Gagal capture, cek koneksi ESP32.");
+
+    } catch (err) {
+      console.log("Capture error:", err);
+      setMessage("Gagal capture. Cek koneksi ESP32.");
     } finally {
       setLoading(false);
-      setTimeout(() => setMessage(""), 3000);
+
+      // 5. Mulai stream lagi otomatis setelah capture selesai
+      setTimeout(() => {
+        setStreaming(true);
+        setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
+        setMessage("");
+      }, 1000);
     }
   };
 
@@ -140,7 +165,7 @@ function App() {
             <h1>Live Camera</h1>
 
             <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-              <button onClick={streaming ? stopStream : startStream}>
+              <button onClick={streaming ? stopStream : startStream} disabled={loading}>
                 {streaming ? "Stop Stream" : "Start Stream"}
               </button>
 
@@ -151,21 +176,37 @@ function App() {
               )}
             </div>
 
-            {message && <p style={{ color: "#aaa" }}>{message}</p>}
+            {/* Status message */}
+            {message && (
+              <p style={{ color: "#f0c040", marginBottom: "12px" }}>{message}</p>
+            )}
 
-            {streaming && streamUrl && (
+            {/* Stream image */}
+            {streamUrl && (
               <img
                 src={streamUrl}
                 alt="ESP32 stream"
                 style={{ width: "100%", borderRadius: "20px" }}
-                onError={() => {
-                  setMessage("Stream tidak tersambung. Cek IP ESP32.");
-                }}
+                onError={() => setMessage("Stream tidak tersambung. Cek IP ESP32.")}
               />
             )}
 
-            {streaming && !streamUrl && (
-              <p style={{ color: "#aaa" }}>Memuat stream...</p>
+            {/* Placeholder saat stream off tapi tidak loading */}
+            {!streamUrl && !loading && (
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "4/3",
+                  background: "#1f1f1f",
+                  borderRadius: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#555",
+                }}
+              >
+                Stream tidak aktif
+              </div>
             )}
           </div>
         )}
