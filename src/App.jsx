@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5000");
+const API_URL =
+  "https://smart-glasses-production-289e.up.railway.app";
+
+const socket = io(API_URL);
 
 function App() {
   const [photos, setPhotos] = useState([]);
@@ -28,9 +31,7 @@ function App() {
 
   const getPhotos = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/photos"
-      );
+      const res = await axios.get(`${API_URL}/photos`);
 
       setPhotos(res.data);
     } catch (error) {
@@ -41,8 +42,8 @@ function App() {
   const deletePhoto = async (id) => {
     try {
       await axios.delete(
-        `http://localhost:5000/photos/${id}`
-      );
+  `${API_URL}/photos/${id}`
+);
 
       setPhotos((prev) =>
         prev.filter((photo) => photo._id !== id)
