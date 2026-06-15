@@ -77,33 +77,31 @@ function App() {
   try {
     setLoading(true);
 
-    // 🔥 1. FORCE STOP STREAM DI ESP32
-    await axios.get(`http://${ESP32_IP}/stop-stream`);
-
     setStreaming(false);
     setStreamUrl(null);
 
     await new Promise((r) => setTimeout(r, 800));
 
-    // 🔥 2. CAPTURE
-    await axios.get(ESP32_CAPTURE_URL);
+    // 🔥 JANGAN nunggu response lama
+    await axios.get(ESP32_CAPTURE_URL, {
+      timeout: 2000,
+    });
 
-    setMessage("Uploading...");
-    await new Promise((r) => setTimeout(r, 3000));
+    setMessage("Capture sent");
+
+    // tunggu backend upload saja
+    await new Promise((r) => setTimeout(r, 4000));
 
     await getPhotos();
 
-    setMessage("Success!");
-
-    // 🔥 3. START STREAM LAGI (RESET FULL)
-    await new Promise((r) => setTimeout(r, 1200));
+    setMessage("Success");
 
     setStreaming(true);
     setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
 
   } catch (err) {
     console.log(err);
-    setMessage("Capture gagal");
+    setMessage("Capture error (ignored)");
   } finally {
     setLoading(false);
   }
