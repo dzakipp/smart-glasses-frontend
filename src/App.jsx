@@ -77,20 +77,19 @@ function App() {
   try {
     setLoading(true);
 
+    // stop stream dulu
     setStreaming(false);
     setStreamUrl(null);
 
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 800));
 
-    // 🔥 JANGAN nunggu response lama
-    await axios.get(ESP32_CAPTURE_URL, {
-      timeout: 2000,
-    });
+    // 🔥 capture tanpa nunggu upload selesai
+    await axios.get(ESP32_CAPTURE_URL);
 
-    setMessage("Capture sent");
+    setMessage("Capturing...");
 
-    // tunggu backend upload saja
-    await new Promise((r) => setTimeout(r, 4000));
+    // tunggu backend upload
+    await new Promise(r => setTimeout(r, 5000));
 
     await getPhotos();
 
@@ -101,7 +100,7 @@ function App() {
 
   } catch (err) {
     console.log(err);
-    setMessage("Capture error (ignored)");
+    setMessage("Capture failed");
   } finally {
     setLoading(false);
   }
