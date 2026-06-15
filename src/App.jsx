@@ -157,18 +157,24 @@ function App() {
 
             {/* Stream image */}
             {/* Stream image */}
-{streamUrl && (
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  }}
+>
   <img
     src={streamUrl}
     alt="ESP32 stream"
     style={{
-      width: "100%",
-      borderRadius: "20px",
+      width: "70%",
       transform: "rotate(-90deg)",
+      borderRadius: "20px",
     }}
-    onError={() => setMessage("Stream tidak tersambung. Cek IP ESP32.")}
   />
-)}
+</div>
 
             {/* Placeholder saat stream off tapi tidak loading */}
             {!streamUrl && !loading && (
