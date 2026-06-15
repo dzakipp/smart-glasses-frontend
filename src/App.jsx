@@ -5,10 +5,9 @@ import { io } from "socket.io-client";
 const API_URL = "https://smart-glasses-production-289e.up.railway.app";
 
 // Ganti IP ini sesuai IP ESP32 kamu (cek Serial Monitor)
-const ESP32_BASE = "http://esp32cam.local";
-
-const ESP32_STREAM_URL = `${ESP32_BASE}/stream`;
-const ESP32_CAPTURE_URL = `${ESP32_BASE}/capture`;
+const ESP32_IP = "192.168.100.193";
+const ESP32_STREAM_URL = `http://${ESP32_IP}/stream`;
+const ESP32_CAPTURE_URL = `http://${ESP32_IP}/capture`;
 
 function App() {
   const [photos, setPhotos]     = useState([]);
