@@ -62,9 +62,9 @@ function App() {
   };
 
   const startStream = () => {
-    setStreaming(true);
-    setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
-  };
+  setStreaming(true);
+  setStreamUrl(ESP32_STREAM_URL);
+};
 
   const stopStream = () => {
     setStreaming(false);
@@ -77,30 +77,12 @@ function App() {
   try {
     setLoading(true);
 
-    // stop stream dulu
-    setStreaming(false);
-    setStreamUrl(null);
-
-    await new Promise(r => setTimeout(r, 800));
-
-    // 🔥 capture tanpa nunggu upload selesai
     await axios.get(ESP32_CAPTURE_URL);
 
-    setMessage("Capturing...");
-
-    // tunggu backend upload
-    await new Promise(r => setTimeout(r, 5000));
-
-    await getPhotos();
-
-    setMessage("Success");
-
-    setStreaming(true);
-    setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
+    await getPhotos(); // langsung update gallery
 
   } catch (err) {
     console.log(err);
-    setMessage("Capture failed");
   } finally {
     setLoading(false);
   }
