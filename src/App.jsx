@@ -77,23 +77,25 @@ function App() {
   try {
     setLoading(true);
 
-    // STOP STREAM
+    // 🔥 1. FORCE STOP STREAM DI ESP32
+    await axios.get(`http://${ESP32_IP}/stop-stream`);
+
     setStreaming(false);
     setStreamUrl(null);
 
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 800));
 
-    // CAPTURE
+    // 🔥 2. CAPTURE
     await axios.get(ESP32_CAPTURE_URL);
 
-    setMessage("Mengupload...");
+    setMessage("Uploading...");
     await new Promise((r) => setTimeout(r, 3000));
 
     await getPhotos();
 
-    setMessage("Sukses!");
+    setMessage("Success!");
 
-    // DELAY sebelum stream balik (PENTING)
+    // 🔥 3. START STREAM LAGI (RESET FULL)
     await new Promise((r) => setTimeout(r, 1200));
 
     setStreaming(true);
