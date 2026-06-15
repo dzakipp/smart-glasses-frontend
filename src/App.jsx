@@ -128,7 +128,7 @@ function App() {
               </button>
             </div>
             <div className="home-right">
-              <img src="/glasses.png" alt="Smart Glasses" />
+              <img src="/glasses.jpeg" alt="Smart Glasses" />
             </div>
           </div>
         )}
