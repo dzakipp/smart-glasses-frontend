@@ -72,47 +72,40 @@ function App() {
   };
 
   const capturePhoto = async () => {
-    if (loading) return;
+  if (loading) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // 1. Stop stream dulu supaya ESP32 bebas capture
-      setStreaming(false);
-      setStreamUrl(null);
-      setMessage("Menghentikan stream...");
+    // STOP STREAM
+    setStreaming(false);
+    setStreamUrl(null);
 
-      // Beri waktu ESP32 menutup koneksi stream (500ms cukup)
-      await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 600));
 
-      // 2. Perintah capture ke ESP32
-      setMessage("Mengambil foto...");
-      await axios.get(ESP32_CAPTURE_URL);
+    // CAPTURE
+    await axios.get(ESP32_CAPTURE_URL);
 
-      // 3. Tunggu ESP32 upload ke Cloudinary (biasanya 2–4 detik)
-      setMessage("Mengupload foto...");
-      await new Promise((r) => setTimeout(r, 4000));
+    setMessage("Mengupload...");
+    await new Promise((r) => setTimeout(r, 3000));
 
-      setMessage("Foto berhasil diambil! ✓");
+    await getPhotos();
 
-      // 4. Foto baru sudah masuk via socket.on("new-photo"),
-      //    tapi fallback getPhotos() kalau socket lambat
-      await getPhotos();
+    setMessage("Sukses!");
 
-    } catch (err) {
-      console.log("Capture error:", err);
-      setMessage("Gagal capture. Cek koneksi ESP32.");
-    } finally {
-      setLoading(false);
+    // DELAY sebelum stream balik (PENTING)
+    await new Promise((r) => setTimeout(r, 1200));
 
-      // 5. Mulai stream lagi otomatis setelah capture selesai
-      setTimeout(() => {
-        setStreaming(true);
-        setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
-        setMessage("");
-      }, 1000);
-    }
-  };
+    setStreaming(true);
+    setStreamUrl(`${ESP32_STREAM_URL}?t=${Date.now()}`);
+
+  } catch (err) {
+    console.log(err);
+    setMessage("Capture gagal");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div
