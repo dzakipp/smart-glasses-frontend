@@ -330,3 +330,6 @@ body{
 
   color:white;
 }
+.stream-image {
+  transform: rotate(-90deg);
+}
